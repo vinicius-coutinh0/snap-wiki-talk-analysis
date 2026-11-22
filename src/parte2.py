@@ -238,29 +238,25 @@ def analisar(df):
 
     A inclinacao e a de log(tempo) contra log(f(n, m)): se a teoria vale, e 1.
     Isso evita misturar o efeito de n com o de m, ja que a densidade das amostras
-    nao cresce de forma regular. Sao so 4 pontos por algoritmo."""
+    nao cresce de forma regular. Sao so 4 pontos por algoritmo.
+
+    A figura mostra (tempo / f(n, m)) relativo ao menor subgrafo: uma reta em 1
+    significa que a teoria vale; valores crescentes indicam custo por unidade
+    maior nos grafos maiores. O Floyd-Warshall usa outros tamanhos e fica de fora."""
     algs = list(TEORIA)
-    fig, axs = plt.subplots(3, 4, figsize=(14, 9))
     ext = []
-    for ax in axs.ravel()[len(algs):]:
-        ax.axis("off")
-    for ax, alg in zip(axs.ravel(), algs):
+    fig, ax = plt.subplots(figsize=(7.5, 4.6))
+    for alg in algs:
         d = df[df.algoritmo == alg].sort_values("n")
         n, m, md, y = d.n.values, d.m.values, d.md.values, d.media_s.values
-        err = np.vstack([y - d.ic95_inf.values, d.ic95_sup.values - y])
-        ax.errorbar(n, y, yerr=err, fmt="o-", capsize=3, label="observado")
         nome, f = TEORIA[alg]
         custo = np.array([f(a, b, c) for a, b, c in zip(n, m, md)])
         c = y[-1] / custo[-1]  # constante ajustada no maior tamanho
-        ax.plot(n, c * custo, "--", label=f"teórico {nome}")
-        ax.set_title(alg)
-        ax.set_xlabel("vértices")
-        ax.set_ylabel("tempo (s)")
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.legend(fontsize=7)
         incl = np.polyfit(np.log(custo), np.log(y), 1)[0]
-        razao = (y[-1] / custo[-1]) / (y[0] / custo[0])  # tempo por unidade de custo
+        por_custo = y / custo
+        razao = por_custo[-1] / por_custo[0]  # tempo por unidade de custo, maior / menor
+        if alg != "Floyd-Warshall":
+            ax.plot(n, por_custo / por_custo[0], "o-", ms=4, label=alg)
         linha = dict(algoritmo=alg, complexidade=nome, inclinacao_vs_custo=incl,
                      razao_tempo_por_custo_maior_menor=razao, pontos=len(n),
                      maior_n_medido=int(n[-1]), tempo_no_maior_s=y[-1])
@@ -268,12 +264,16 @@ def analisar(df):
             obs = d.passadas_medias.values * 2 * m  # passadas x arcos
             linha["inclinacao_vs_passadas_x_arcos"] = np.polyfit(np.log(obs), np.log(y), 1)[0]
             pred = y[-1] / obs[-1] * d.passadas_medias.values[-1] * 2 * M_U_FULL
-        elif alg == "Floyd-Warshall":
-            pred = c * f(N_FULL, M_U_FULL, M_D_FULL)
         else:
             pred = c * f(N_FULL, M_U_FULL, M_D_FULL)
         linha["tempo_estimado_grafo_completo_s"] = pred
         ext.append(linha)
+    ax.axhline(1, color="gray", ls="--", lw=1)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("vértices do subgrafo")
+    ax.set_ylabel("(tempo / custo teórico) relativo ao menor subgrafo")
+    ax.legend(fontsize=7, ncol=2)
     plt.tight_layout()
     plt.savefig(f"{FIG}/parte2_tempos.png", dpi=200)
     plt.close()
