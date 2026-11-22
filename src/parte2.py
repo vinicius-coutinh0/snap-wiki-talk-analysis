@@ -255,7 +255,7 @@ def analisar(df):
         incl = np.polyfit(np.log(custo), np.log(y), 1)[0]
         por_custo = y / custo
         razao = por_custo[-1] / por_custo[0]  # tempo por unidade de custo, maior / menor
-        if alg != "Floyd-Warshall":
+        if alg not in ("Floyd-Warshall", "Bellman-Ford"):  # BF tem outra escala; ver texto
             ax.plot(n, por_custo / por_custo[0], "o-", ms=4, label=alg)
         linha = dict(algoritmo=alg, complexidade=nome, inclinacao_vs_custo=incl,
                      razao_tempo_por_custo_maior_menor=razao, pontos=len(n),
