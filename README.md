@@ -28,6 +28,15 @@ pip install -r requirements.txt
    python src/parte2.py --completo
    ```
 
+5. Parte III (cada script gera `results/parte3_*.csv` e uma figura em `results/figures/`):
+   ```powershell
+   python src/parte3_smallworld.py   # small-world com codigo proprio (uns 5 minutos)
+   python src/parte3_potencia.py     # lei de potencia com o pacote powerlaw
+   python src/parte3_robustez.py     # remocao aleatoria (30 repeticoes) e ataques (uns 15 minutos)
+   python src/parte3_descoberta.py   # alcance a partir dos escritores apos remocoes
+   python src/parte3_modelos.py      # comparacao com Erdos-Renyi, Barabasi-Albert e Watts-Strogatz
+   ```
+
 Os scripts rodam a partir da raiz do repositório. A semente aleatória é fixa (42).
 
 ## Estrutura
