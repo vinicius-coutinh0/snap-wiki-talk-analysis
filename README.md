@@ -23,6 +23,10 @@ pip install -r requirements.txt
    ```powershell
    python src/parte2.py
    ```
+   Para rodar os algoritmos de verdade na maior componente (2,4 milhões de vértices, uns 10 minutos e vários GB de memória; gera `results/parte2_completo*.csv`):
+   ```powershell
+   python src/parte2.py --completo
+   ```
 
 Os scripts rodam a partir da raiz do repositório. A semente aleatória é fixa (42).
 

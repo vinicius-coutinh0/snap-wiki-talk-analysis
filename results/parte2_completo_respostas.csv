@@ -1,0 +1,14 @@
+item,valor
+sccs_tarjan_python,2276529
+sccs_igraph,2276529
+maior_scc_tarjan,111881
+maior_scc_igraph,111881
+vertices_grau_impar,1941430
+eulerianidade,nao
+euleriano_dirigido,False
+bfs_confere_igraph,True
+dijkstra_confere_igraph,True
+kruskal_peso,11706862
+kruskal_peso_igraph,11706862
+kruskal_arestas,2388952
+bellman_ford_passadas_medias,6.4

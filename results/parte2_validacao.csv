@@ -8,6 +8,7 @@ n,algoritmo,confere
 1000,Tarjan,True
 1000,Kruskal,True
 1000,Prim,True
+1000,Prim (ingenuo),True
 1000,Euleriano,True
 5000,BFS,True
 5000,DFS,True
@@ -18,6 +19,7 @@ n,algoritmo,confere
 5000,Tarjan,True
 5000,Kruskal,True
 5000,Prim,True
+5000,Prim (ingenuo),True
 5000,Euleriano,True
 20000,BFS,True
 20000,DFS,True
@@ -28,6 +30,7 @@ n,algoritmo,confere
 20000,Tarjan,True
 20000,Kruskal,True
 20000,Prim,True
+20000,Prim (ingenuo),True
 20000,Euleriano,True
 100000,BFS,True
 100000,DFS,True
@@ -38,6 +41,7 @@ n,algoritmo,confere
 100000,Tarjan,True
 100000,Kruskal,True
 100000,Prim,True
+100000,Prim (ingenuo),True
 100000,Euleriano,True
 50,Floyd-Warshall,True
 100,Floyd-Warshall,True

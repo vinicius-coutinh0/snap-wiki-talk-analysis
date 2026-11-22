@@ -82,12 +82,13 @@ def euleriano_dirigido(adj):
     return euleriano_nao_dirigido(und) != "nao"
 
 
-def dijkstra(wadj, s):
-    """Heap binario. O((V + E) log V). Pesos nao negativos."""
+def dijkstra(wadj, s, push=heapq.heappush):
+    """Heap binario. O((V + E) log V). Pesos nao negativos.
+    `push` pode ser trocado por uma funcao que conta as insercoes no heap."""
     dist = [INF] * len(wadj)
     dist[s] = 0
     heap = [(0, s)]
-    pop, push = heapq.heappop, heapq.heappush
+    pop = heapq.heappop
     while heap:
         d, u = pop(heap)
         if d > dist[u]:
@@ -212,12 +213,12 @@ def kruskal(n, arestas):
     return peso, usadas
 
 
-def prim(wadj, s):
-    """Heap binario. O((V + E) log V). Devolve (peso, n_arestas_usadas)."""
+def prim_ingenuo(wadj, s, push=heapq.heappush):
+    """Prim que insere no heap toda aresta que sai da arvore (ate ~2E insercoes)."""
     n = len(wadj)
     na_arvore = [False] * n
     heap = [(0, s)]
-    pop, push = heapq.heappop, heapq.heappush
+    pop = heapq.heappop
     peso = 0
     usadas = -1
     while heap:
@@ -229,5 +230,30 @@ def prim(wadj, s):
         usadas += 1
         for v, wv in wadj[u]:
             if not na_arvore[v]:
+                push(heap, (wv, v))
+    return peso, usadas
+
+
+def prim(wadj, s, push=heapq.heappush):
+    """Prim com vetor chave[v]: so insere no heap quando a chave de v melhora,
+    como o Dijkstra. O((V + E) log V). Devolve (peso, n_arestas_usadas)."""
+    n = len(wadj)
+    na_arvore = [False] * n
+    chave = [INF] * n
+    chave[s] = 0
+    heap = [(0, s)]
+    pop = heapq.heappop
+    peso = 0
+    usadas = -1
+    while heap:
+        w, u = pop(heap)
+        if na_arvore[u]:
+            continue
+        na_arvore[u] = True
+        peso += w
+        usadas += 1
+        for v, wv in wadj[u]:
+            if not na_arvore[v] and wv < chave[v]:
+                chave[v] = wv
                 push(heap, (wv, v))
     return peso, usadas

@@ -4,6 +4,7 @@ Uso: python src/parte2.py          (completo)
      RAPIDO=1 python src/parte2.py (teste rapido)
 """
 import gc
+import heapq
 import math
 import os
 import time
@@ -102,6 +103,8 @@ def validar(S):
     pref = sum(su.spanning_tree(weights="w").es["w"])
     ok["Kruskal"] = pk == pref and uk == n - 1
     ok["Prim"] = pp == pref and up == n - 1
+    pi, ui = A.prim_ingenuo(S["wadj"], 0)
+    ok["Prim (ingenuo)"] = pi == pref and ui == n - 1
     impares = sum(len(a) % 2 for a in S["adj"])  # amostra e conexa
     esperado = "circuito" if impares == 0 else ("trilha" if impares == 2 else "nao")
     ok["Euleriano"] = A.euleriano_nao_dirigido(S["adj"]) == esperado
@@ -133,6 +136,17 @@ def medir(f, reps, args_list=None):
     return np.array(tempos)
 
 
+def pushes(fn, wadj, s):
+    """Conta as insercoes no heap de uma execucao (fora da medicao de tempo)."""
+    c = [0]
+
+    def p(h, x):
+        c[0] += 1
+        heapq.heappush(h, x)
+    fn(wadj, s, p)
+    return c[0]
+
+
 def resumo(t):
     n = len(t)
     media, dp = t.mean(), t.std(ddof=1)
@@ -150,7 +164,7 @@ def main():
 
     def registrar(alg, S, t, extra=None):
         media, dp, lo, hi, dist = resumo(t)
-        linhas.append(dict(algoritmo=alg, n=S["n"], m=S["m"], reps=len(t), media_s=media,
+        linhas.append(dict(algoritmo=alg, n=S["n"], m=S["m"], md=S["md"], reps=len(t), media_s=media,
                            desvio_s=dp, ic95_inf=lo, ic95_sup=hi, dist_ic=dist, **(extra or {})))
         brutos.extend(dict(algoritmo=alg, n=S["n"], rep=i, tempo_s=x) for i, x in enumerate(t))
         print(f"{alg:14s} n={S['n']:7d} media={media:.4f}s dp={dp:.4f}", flush=True)
@@ -166,7 +180,8 @@ def main():
         registrar("BFS", S, medir(lambda s: A.bfs(S["adj"], s), REPS, src))
         registrar("DFS", S, medir(lambda s: A.dfs(S["adj"], s), REPS, src))
         registrar("Euleriano", S, medir(lambda: A.euleriano_nao_dirigido(S["adj"]), REPS, [()] * REPS))
-        registrar("Dijkstra", S, medir(lambda s: A.dijkstra(S["wadj"], s), REPS, src))
+        registrar("Dijkstra", S, medir(lambda s: A.dijkstra(S["wadj"], s), REPS, src),
+                  dict(insercoes_heap=pushes(A.dijkstra, S["wadj"], src[0])))
         passadas = []
         def run_bf(s):
             passadas.append(A.bellman_ford(S["n"], S["arcos"], s)[1])
@@ -174,7 +189,10 @@ def main():
                   dict(passadas_medias=float(np.mean(passadas))))
         registrar("Tarjan", S, medir(lambda: A.tarjan_scc(S["adj_d"]), REPS, [()] * REPS))
         registrar("Kruskal", S, medir(lambda: A.kruskal(S["n"], S["arestas"]), REPS, [()] * REPS))
-        registrar("Prim", S, medir(lambda s: A.prim(S["wadj"], s), REPS, src))
+        registrar("Prim (ingênuo)", S, medir(lambda s: A.prim_ingenuo(S["wadj"], s), REPS, src),
+                  dict(insercoes_heap=pushes(A.prim_ingenuo, S["wadj"], src[0])))
+        registrar("Prim", S, medir(lambda s: A.prim(S["wadj"], s), REPS, src),
+                  dict(insercoes_heap=pushes(A.prim, S["wadj"], src[0])))
 
     for k in TAM_FW:
         S = montar(gu, gd, amostra_bfs(gu, hub, k))
@@ -199,56 +217,63 @@ def main():
     analisar(df)
 
 
-# funcao de custo teorica f(n, m) de cada algoritmo
+# funcao de custo teorica f(n, m, md) de cada algoritmo
+# m = arestas nao dirigidas; md = arestas dirigidas (usado pelo Tarjan)
 TEORIA = {
-    "BFS": ("O(V+E)", lambda n, m: n + m),
-    "DFS": ("O(V+E)", lambda n, m: n + m),
-    "Euleriano": ("O(V+E)", lambda n, m: n + m),
-    "Tarjan": ("O(V+E)", lambda n, m: n + m),
-    "Dijkstra": ("O((V+E) log V)", lambda n, m: (n + m) * math.log2(n)),
-    "Prim": ("O((V+E) log V)", lambda n, m: (n + m) * math.log2(n)),
-    "Kruskal": ("O(E log E)", lambda n, m: m * math.log2(max(m, 2))),
-    "Bellman-Ford": ("O(VE)", lambda n, m: n * m),
-    "Floyd-Warshall": ("O(V^3)", lambda n, m: n ** 3),
+    "BFS": ("O(V+E)", lambda n, m, md: n + m),
+    "DFS": ("O(V+E)", lambda n, m, md: n + m),
+    "Euleriano": ("O(V+E)", lambda n, m, md: n + m),
+    "Tarjan": ("O(V+E)", lambda n, m, md: n + md),
+    "Dijkstra": ("O((V+E) log V)", lambda n, m, md: (n + m) * math.log2(n)),
+    "Prim (ingênuo)": ("O((V+E) log V)", lambda n, m, md: (n + m) * math.log2(n)),
+    "Prim": ("O((V+E) log V)", lambda n, m, md: (n + m) * math.log2(n)),
+    "Kruskal": ("O(E log E)", lambda n, m, md: m * math.log2(max(m, 2))),
+    "Bellman-Ford": ("O(VE)", lambda n, m, md: n * m),
+    "Floyd-Warshall": ("O(V^3)", lambda n, m, md: n ** 3),
 }
 
 
 def analisar(df):
-    """Figura, expoente observado e extrapolacao para o grafo completo."""
+    """Figura, inclinacao contra o custo teorico e extrapolacao para o grafo completo.
+
+    A inclinacao e a de log(tempo) contra log(f(n, m)): se a teoria vale, e 1.
+    Isso evita misturar o efeito de n com o de m, ja que a densidade das amostras
+    nao cresce de forma regular. Sao so 4 pontos por algoritmo."""
     algs = list(TEORIA)
-    fig, axs = plt.subplots(3, 3, figsize=(11, 9))
+    fig, axs = plt.subplots(3, 4, figsize=(14, 9))
     ext = []
+    for ax in axs.ravel()[len(algs):]:
+        ax.axis("off")
     for ax, alg in zip(axs.ravel(), algs):
         d = df[df.algoritmo == alg].sort_values("n")
-        n, m, y = d.n.values, d.m.values, d.media_s.values
+        n, m, md, y = d.n.values, d.m.values, d.md.values, d.media_s.values
         err = np.vstack([y - d.ic95_inf.values, d.ic95_sup.values - y])
         ax.errorbar(n, y, yerr=err, fmt="o-", capsize=3, label="observado")
         nome, f = TEORIA[alg]
-        # constante ajustada no maior tamanho medido
-        c = y[-1] / f(n[-1], m[-1])
-        ax.loglog(n, [c * f(a, b) for a, b in zip(n, m)], "--", label=f"teórico {nome}")
+        custo = np.array([f(a, b, c) for a, b, c in zip(n, m, md)])
+        c = y[-1] / custo[-1]  # constante ajustada no maior tamanho
+        ax.plot(n, c * custo, "--", label=f"teórico {nome}")
         ax.set_title(alg)
         ax.set_xlabel("vértices")
         ax.set_ylabel("tempo (s)")
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.legend(fontsize=7)
-        expo = np.polyfit(np.log(n), np.log(y), 1)[0] if len(n) > 1 else float("nan")
-        # inclinacao que a propria funcao teorica tem nas mesmas amostras (m cresce mais que n)
-        expo_teo = np.polyfit(np.log(n), np.log([f(a, b) for a, b in zip(n, m)]), 1)[0]
-        if alg == "Floyd-Warshall":
-            pred = c * f(N_FULL, M_U_FULL)
-        elif alg == "Bellman-Ford":
-            # custo observado ~ passadas * arcos (a parada antecipada evita o pior caso)
-            c2 = y[-1] / (d.passadas_medias.values[-1] * 2 * m[-1])
-            pred = c2 * d.passadas_medias.values[-1] * 2 * M_U_FULL
+        incl = np.polyfit(np.log(custo), np.log(y), 1)[0]
+        razao = (y[-1] / custo[-1]) / (y[0] / custo[0])  # tempo por unidade de custo
+        linha = dict(algoritmo=alg, complexidade=nome, inclinacao_vs_custo=incl,
+                     razao_tempo_por_custo_maior_menor=razao, pontos=len(n),
+                     maior_n_medido=int(n[-1]), tempo_no_maior_s=y[-1])
+        if alg == "Bellman-Ford":
+            obs = d.passadas_medias.values * 2 * m  # passadas x arcos
+            linha["inclinacao_vs_passadas_x_arcos"] = np.polyfit(np.log(obs), np.log(y), 1)[0]
+            pred = y[-1] / obs[-1] * d.passadas_medias.values[-1] * 2 * M_U_FULL
+        elif alg == "Floyd-Warshall":
+            pred = c * f(N_FULL, M_U_FULL, M_D_FULL)
         else:
-            mm = M_D_FULL if alg == "Tarjan" else M_U_FULL
-            pred = c * f(N_FULL, mm)
-        ext.append(dict(algoritmo=alg, complexidade=nome, expoente_observado=expo,
-                        expoente_teorico_nas_amostras=expo_teo,
-                        maior_n_medido=int(n[-1]), tempo_no_maior_s=y[-1],
-                        tempo_estimado_grafo_completo_s=pred))
+            pred = c * f(N_FULL, M_U_FULL, M_D_FULL)
+        linha["tempo_estimado_grafo_completo_s"] = pred
+        ext.append(linha)
     plt.tight_layout()
     plt.savefig(f"{FIG}/parte2_tempos.png", dpi=200)
     plt.close()
@@ -256,9 +281,73 @@ def analisar(df):
     print(pd.DataFrame(ext).to_string())
 
 
+def completo():
+    """Roda os algoritmos lineares e quase lineares de verdade na maior componente
+    (2,4 milhoes de vertices), com poucas repeticoes (t de Student)."""
+    reps, reps_bf = 10, 5
+    r2 = np.random.default_rng(SEED + 1)
+    gu, gd = carregar("undir_lcc"), carregar("dir_lcc")
+    t0 = time.perf_counter()
+    S = montar(gu, gd, list(range(gu.vcount())))
+    print(f"estruturas montadas em {time.perf_counter() - t0:.0f}s: n={S['n']} m={S['m']} md={S['md']}", flush=True)
+    n = S["n"]
+    src = [int(x) for x in r2.integers(0, n, reps)]
+    linhas, resp = [], {}
+
+    def rodar(alg, f, args, r):
+        t = medir(f, r, args)
+        media, dp, lo, hi, dist = resumo(t)
+        linhas.append(dict(algoritmo=alg, n=n, m=S["m"], md=S["md"], reps=r, media_s=media,
+                           desvio_s=dp, ic95_inf=lo, ic95_sup=hi, dist_ic=dist))
+        print(f"{alg:16s} media={media:.2f}s dp={dp:.2f}", flush=True)
+
+    rodar("BFS", lambda s: A.bfs(S["adj"], s), src, reps)
+    rodar("DFS", lambda s: A.dfs(S["adj"], s), src, reps)
+    rodar("Euleriano", lambda: A.euleriano_nao_dirigido(S["adj"]), [()] * reps, reps)
+    rodar("Dijkstra", lambda s: A.dijkstra(S["wadj"], s), src, reps)
+    rodar("Tarjan", lambda: A.tarjan_scc(S["adj_d"]), [()] * reps, reps)
+    rodar("Kruskal", lambda: A.kruskal(n, S["arestas"]), [()] * reps, reps)
+    rodar("Prim (ingênuo)", lambda s: A.prim_ingenuo(S["wadj"], s), src, reps)
+    rodar("Prim", lambda s: A.prim(S["wadj"], s), src, reps)
+    pas = []
+    rodar("Bellman-Ford", lambda s: pas.append(A.bellman_ford(n, S["arcos"], s)[1]), src, reps_bf)
+    linhas[-1]["passadas_medias"] = float(np.mean(pas))
+    linhas[-1]["passadas_max"] = int(max(pas))
+    pd.DataFrame(linhas).to_csv(f"{RES}/parte2_completo.csv", index=False)
+
+    # respostas reais e conferencia com o igraph
+    comp, nc = A.tarjan_scc(S["adj_d"])
+    tam = np.bincount(comp)
+    impares = sum(len(a) % 2 for a in S["adj"])
+    s = src[0]
+    ref = [int(x) for x in gu.distances(source=s)[0]]
+    gu.es["w"] = S["pesos"]
+    pk, uk = A.kruskal(n, S["arestas"])
+    resp = {
+        "sccs_tarjan_python": nc,
+        "sccs_igraph": len(gd.connected_components(mode="strong")),
+        "maior_scc_tarjan": int(tam.max()),
+        "maior_scc_igraph": max(gd.connected_components(mode="strong").sizes()),
+        "vertices_grau_impar": impares,
+        "eulerianidade": A.euleriano_nao_dirigido(S["adj"]),
+        "euleriano_dirigido": A.euleriano_dirigido(S["adj_d"]),
+        "bfs_confere_igraph": A.bfs(S["adj"], s) == ref,
+        "dijkstra_confere_igraph": [float(x) for x in A.dijkstra(S["wadj"], s)]
+        == [float(x) for x in gu.distances(source=s, weights="w")[0]],
+        "kruskal_peso": pk,
+        "kruskal_peso_igraph": int(sum(gu.spanning_tree(weights="w").es["w"])),
+        "kruskal_arestas": uk,
+        "bellman_ford_passadas_medias": float(np.mean(pas)),
+    }
+    pd.Series(resp).to_csv(f"{RES}/parte2_completo_respostas.csv", header=["valor"], index_label="item")
+    print(pd.Series(resp).to_string())
+
+
 if __name__ == "__main__":
     import sys
     if "--analise" in sys.argv:  # refaz so figura e extrapolacao a partir do CSV
         analisar(pd.read_csv(f"{RES}/parte2_tempos.csv"))
+    elif "--completo" in sys.argv:
+        completo()
     else:
         main()
