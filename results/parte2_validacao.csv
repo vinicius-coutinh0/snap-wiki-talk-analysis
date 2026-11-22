@@ -1,0 +1,45 @@
+n,algoritmo,confere
+1000,BFS,True
+1000,DFS,True
+1000,Dijkstra,True
+1000,Bellman-Ford,True
+1000,Dijkstra (peso 1) = BFS,True
+1000,Bellman-Ford (peso 1) = BFS,True
+1000,Tarjan,True
+1000,Kruskal,True
+1000,Prim,True
+1000,Euleriano,True
+5000,BFS,True
+5000,DFS,True
+5000,Dijkstra,True
+5000,Bellman-Ford,True
+5000,Dijkstra (peso 1) = BFS,True
+5000,Bellman-Ford (peso 1) = BFS,True
+5000,Tarjan,True
+5000,Kruskal,True
+5000,Prim,True
+5000,Euleriano,True
+20000,BFS,True
+20000,DFS,True
+20000,Dijkstra,True
+20000,Bellman-Ford,True
+20000,Dijkstra (peso 1) = BFS,True
+20000,Bellman-Ford (peso 1) = BFS,True
+20000,Tarjan,True
+20000,Kruskal,True
+20000,Prim,True
+20000,Euleriano,True
+100000,BFS,True
+100000,DFS,True
+100000,Dijkstra,True
+100000,Bellman-Ford,True
+100000,Dijkstra (peso 1) = BFS,True
+100000,Bellman-Ford (peso 1) = BFS,True
+100000,Tarjan,True
+100000,Kruskal,True
+100000,Prim,True
+100000,Euleriano,True
+50,Floyd-Warshall,True
+100,Floyd-Warshall,True
+200,Floyd-Warshall,True
+300,Floyd-Warshall,True

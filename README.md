@@ -19,7 +19,12 @@ pip install -r requirements.txt
    python src/parte1.py
    ```
 
-Os dois scripts rodam a partir da raiz do repositório. A semente aleatória é fixa (42).
+4. Parte II, algoritmos em Python puro (`src/algoritmos.py`) medidos em subgrafos de 1k a 100k vértices, com 30 repetições (leva cerca de 10 minutos; gera `results/parte2_*.csv` e `results/figures/parte2_tempos.png`):
+   ```powershell
+   python src/parte2.py
+   ```
+
+Os scripts rodam a partir da raiz do repositório. A semente aleatória é fixa (42).
 
 ## Estrutura
 
