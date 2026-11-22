@@ -1,0 +1,12 @@
+item,valor
+arestas_brutas,5021410
+vertices_brutos,2394385
+auto_loops_removidos,0
+arestas_dirigidas,5021410
+duplicadas_removidas,0
+arestas_nao_dirigidas,4659565
+pares_reciprocos,361845
+componentes,2555
+vertices_maior_componente,2388953
+arestas_maior_componente_dir,5018445
+arestas_maior_componente_nao_dir,4656682

@@ -221,3 +221,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Projeto
+data/raw/
+__pycache__/
+.ipynb_checkpoints/
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
