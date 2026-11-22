@@ -63,6 +63,36 @@ def main():
     plt.close()
 
 
+def sensibilidade():
+    """Refaz o ajuste com x_min fixo (10 e 100) para ver como gamma muda.
+    Tambem registra o valor critico aproximado do KS, 1,36 / sqrt(n_cauda)."""
+    gd = carregar("dir_lcc")
+    series = {"entrada": gd.indegree(), "saída": gd.outdegree(),
+              "total": gd.as_undirected(mode="collapse").degree()}
+    linhas = []
+    for nome, graus in series.items():
+        graus = np.asarray(graus)
+        graus = graus[graus > 0]
+        for xmin in (10, 100):
+            fit = powerlaw.Fit(graus, discrete=True, xmin=xmin, verbose=False)
+            ncauda = int((graus >= xmin).sum())
+            linha = dict(grau=nome, xmin_fixo=xmin, n_cauda=ncauda,
+                         gamma=fit.power_law.alpha, gamma_erro=fit.power_law.sigma,
+                         ks_D=fit.power_law.D, ks_critico_aprox=1.36 / np.sqrt(ncauda))
+            for alt in CONCORRENTES:
+                R, p = fit.distribution_compare("power_law", alt, normalized_ratio=True)
+                linha[f"R_vs_{alt}"] = R
+                linha[f"p_vs_{alt}"] = p
+            linhas.append(linha)
+            print(linha, flush=True)
+            pd.DataFrame(linhas).to_csv(f"{RES}/parte3_potencia_sensibilidade.csv", index=False)
+
+
 if __name__ == "__main__":
+    import sys
     warnings.filterwarnings("ignore")
-    main()
+    if "--sensibilidade" in sys.argv:
+        sensibilidade()
+    else:
+        main()
+        sensibilidade()

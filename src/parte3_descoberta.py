@@ -26,10 +26,11 @@ def alcance(h, rng):
     saida = np.array(h.outdegree())
     escritores = np.nonzero(saida > 0)[0]
     if len(escritores) == 0:
-        return 0.0, 0
+        return 0.0, 0.0, 0
     fontes = rng.choice(escritores, min(N_FONTES, len(escritores)), replace=False)
-    fr = [len(h.subcomponent(int(s), mode="out")) / h.vcount() for s in fontes]
-    return float(np.mean(fr)), len(escritores)
+    fr = np.array([len(h.subcomponent(int(s), mode="out")) / h.vcount() for s in fontes])
+    ep = fr.std(ddof=1) / np.sqrt(len(fr)) if len(fr) > 1 else 0.0
+    return float(fr.mean()), float(ep), len(escritores)
 
 
 def main():
@@ -45,17 +46,21 @@ def main():
     for k in ks:
         for nome, ordem in [("maior grau de saída", ord_out), ("maior grau de entrada", ord_in)]:
             h = remover(g, ordem[:k]) if k else g
-            a, nesc = alcance(h, rng)
-            linhas.append(dict(remocao=nome, k=k, alcance_medio=a, escritores_restantes=nesc,
-                               vertices_restantes=h.vcount()))
+            a, ep, nesc = alcance(h, rng)
+            linhas.append(dict(remocao=nome, k=k, alcance_medio=a, erro_padrao=ep,
+                               escritores_restantes=nesc, vertices_restantes=h.vcount()))
             print(linhas[-1], flush=True)
         vals = []
         for _ in range(REPS_ALEATORIO if k else 1):
             h = remover(g, rng.choice(n, k, replace=False)) if k else g
-            a, nesc = alcance(h, rng)
-            vals.append((a, nesc))
+            a, ep, nesc = alcance(h, rng)
+            vals.append((a, ep, nesc))
+        # erro padrao entre as repeticoes (ou o da unica execucao quando k = 0)
+        ep_rep = float(np.std([v[0] for v in vals], ddof=1) / np.sqrt(len(vals))) if len(vals) > 1 \
+            else vals[0][1]
         linhas.append(dict(remocao="aleatória", k=k, alcance_medio=float(np.mean([v[0] for v in vals])),
-                           escritores_restantes=int(np.mean([v[1] for v in vals])),
+                           erro_padrao=ep_rep,
+                           escritores_restantes=int(np.mean([v[2] for v in vals])),
                            vertices_restantes=n - k))
         print(linhas[-1], flush=True)
         pd.DataFrame(linhas).to_csv(f"{RES}/parte3_descoberta.csv", index=False)
@@ -64,7 +69,7 @@ def main():
     plt.figure(figsize=(5.5, 3.8))
     for nome, d in df.groupby("remocao"):
         d = d[d.k > 0]
-        plt.plot(d.k, d.alcance_medio, "o-", label=nome)
+        plt.errorbar(d.k, d.alcance_medio, yerr=d.erro_padrao, fmt="o-", capsize=2, label=nome)
     plt.axhline(df[df.k == 0].alcance_medio.iloc[0], color="gray", ls=":", lw=1)
     plt.xscale("log")
     plt.xlabel("vértices removidos (k)")

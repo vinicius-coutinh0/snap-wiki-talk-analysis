@@ -72,6 +72,17 @@ def main():
         graus[nome] = grau
         pd.DataFrame(linhas).to_csv(f"{RES}/parte3_modelos.csv", index=False)
         del g
+    # modelo de configuracao: mesma sequencia de graus do wiki-Talk (gerado por ultimo,
+    # para nao alterar a ordem dos sorteios dos modelos anteriores)
+    import random
+    random.seed(SEED + 9)
+    # metodo "configuration" aceita lacos e arestas duplicadas, que analisar() remove com
+    # simplify(); o metodo que exige grafo simples nao termina com um hub de grau 100 mil
+    gc = ig.Graph.Degree_Sequence(wt.degree(), method="configuration")
+    linha, _ = analisar("Configuração (mesmos graus)", gc, rng, n)
+    linhas.append(linha)
+    pd.DataFrame(linhas).to_csv(f"{RES}/parte3_modelos.csv", index=False)
+    del gc
     plt.figure(figsize=(5.5, 3.8))
     for nome, gr in graus.items():
         k, cont = np.unique(gr[gr > 0], return_counts=True)
